@@ -1,0 +1,1004 @@
+name: world_history_analytics
+description: Comprehensive semantic model for World History QA education analytics covering student performance, test results, question difficulty analysis, and school demographics. Enables analysis of academic performance patterns, hardest questions, and institutional comparisons.
+tables:
+  - name: STUDENT_CHAPTER_TEST_RESULTS
+    description: Student performance data for World History chapter tests including scores, grades, and completion metrics.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: STUDENT_CHAPTER_TEST_RESULTS
+    primary_key:
+      columns:
+        - STUDENT_ID
+        - CHAPTER_NUMBER
+    dimensions:
+      - name: STUDENT_ID
+        synonyms:
+          - student
+          - student number
+          - student identifier
+        description: Unique identifier for each student
+        expr: STUDENT_ID
+        data_type: NUMBER
+        unique: false
+      - name: CHAPTER_NUMBER
+        synonyms:
+          - chapter
+          - chapter number
+          - chapter id
+        description: World History chapter number
+        expr: CHAPTER_NUMBER
+        data_type: NUMBER
+        unique: false
+      - name: LETTER_GRADE
+        synonyms:
+          - grade
+          - test grade
+          - final grade
+          - letter grade
+        description: Letter grade received on the chapter test
+        expr: LETTER_GRADE
+        data_type: TEXT
+        is_enum: true
+    facts:
+      - name: TOTAL_QUESTIONS
+        synonyms:
+          - questions
+          - total questions
+          - question count
+        description: Total number of questions on the test
+        expr: TOTAL_QUESTIONS
+        data_type: NUMBER
+      - name: CORRECT_ANSWERS
+        synonyms:
+          - correct
+          - right answers
+          - points earned
+          - correct count
+        description: Number of correct answers on the test
+        expr: CORRECT_ANSWERS
+        data_type: NUMBER
+      - name: FINAL_SCORE_PERCENT
+        synonyms:
+          - percentage score
+          - score
+          - test score
+          - percent
+        description: Test score as a percentage (0-100)
+        expr: FINAL_SCORE_PERCENT
+        data_type: FLOAT
+    metrics:
+      - name: average_score
+        synonyms:
+          - avg score
+          - mean score
+        description: Average test score across students or tests
+        expr: AVG(FINAL_SCORE_PERCENT)
+      - name: total_tests
+        synonyms:
+          - test count
+          - number of tests
+        description: Total number of tests taken
+        expr: COUNT(*)
+      - name: passing_rate
+        synonyms:
+          - pass rate
+          - success rate
+        description: Percentage of students with passing grades (C- or better)
+        expr: COUNT(CASE WHEN LETTER_GRADE NOT IN ('D+', 'D', 'D-', 'F') THEN 1 END) * 100.0 / COUNT(*)
+    filters:
+      - name: passing_grades
+        synonyms:
+          - passing
+          - successful
+        description: Filter to include only passing grades (C- or better)
+        expr: LETTER_GRADE NOT IN ('D+', 'D', 'D-', 'F')
+      - name: failing_grades
+        synonyms:
+          - failing
+          - unsuccessful
+        description: Filter to include only failing grades
+        expr: LETTER_GRADE = 'F'
+      - name: high_achieving
+        synonyms:
+          - excellent
+          - top students
+          - a students
+        description: Filter for A-level grades (A+, A, A-)
+        expr: LETTER_GRADE IN ('A+', 'A', 'A-')
+  - name: STUDENT_QUESTION_RESPONSES
+    description: Individual student responses to specific questions, tracking which questions each student answered correctly with response times and difficulty analysis.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: STUDENT_QUESTION_RESPONSES
+    primary_key:
+      columns:
+        - RESPONSE_ID
+    dimensions:
+      - name: RESPONSE_ID
+        synonyms:
+          - response
+          - response id
+        description: Unique identifier for each question response
+        expr: RESPONSE_ID
+        data_type: NUMBER
+        unique: true
+      - name: STUDENT_ID
+        synonyms:
+          - student
+          - student number
+        description: Student who answered the question
+        expr: STUDENT_ID
+        data_type: NUMBER
+        unique: false
+      - name: QUESTION_ID
+        synonyms:
+          - question number
+          - question id
+        description: The specific question that was answered
+        expr: QUESTION_ID
+        data_type: NUMBER
+        unique: false
+      - name: CHAPTER_NUMBER
+        synonyms:
+          - chapter
+          - chapter number
+        description: Chapter number for this question
+        expr: CHAPTER_NUMBER
+        data_type: NUMBER
+        unique: false
+      - name: DIFFICULTY_LEVEL
+        synonyms:
+          - difficulty
+          - level
+          - hard easy
+        description: Difficulty level of the question (Easy, Medium, Hard)
+        expr: DIFFICULTY_LEVEL
+        data_type: TEXT
+        is_enum: true
+      - name: TOPIC
+        synonyms:
+          - topic
+          - subject
+          - theme
+        description: Specific topic or theme covered by this question
+        expr: TOPIC
+        data_type: TEXT
+        unique: false
+      - name: IS_CORRECT
+        synonyms:
+          - correct
+          - right
+          - answer correct
+        description: Whether the student answered correctly (TRUE/FALSE)
+        expr: IS_CORRECT
+        data_type: BOOLEAN
+        unique: false
+      - name: STUDENT_ANSWER
+        synonyms:
+          - answer
+          - student choice
+          - selected option
+        description: The answer option (A, B, C, or D) that the student selected
+        expr: STUDENT_ANSWER
+        data_type: TEXT
+        unique: false
+      - name: CORRECT_ANSWER
+        synonyms:
+          - correct option
+          - right answer
+          - solution
+        description: The correct answer for this question
+        expr: CORRECT_ANSWER
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - response date
+          - answered on
+        description: Date and time when the response was recorded
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: RESPONSE_TIME_SECONDS
+        synonyms:
+          - time spent
+          - response time
+          - seconds
+        description: Time spent answering this question in seconds
+        expr: RESPONSE_TIME_SECONDS
+        data_type: NUMBER
+    metrics:
+      - name: success_rate
+        synonyms:
+          - success rate
+          - correct percentage
+          - accuracy
+        description: Percentage of correct responses
+        expr: ROUND(SUM(CASE WHEN IS_CORRECT THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2)
+      - name: avg_response_time
+        synonyms:
+          - average time
+          - mean response time
+        description: Average time spent per response in seconds
+        expr: ROUND(AVG(RESPONSE_TIME_SECONDS), 1)
+  - name: WORLD_HISTORY_TEST_QUESTIONS
+    description: Comprehensive question bank for World History assessments including question text, multiple choice options, correct answers, and difficulty levels.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: WORLD_HISTORY_TEST_QUESTIONS
+    primary_key:
+      columns:
+        - QUESTION_ID
+    dimensions:
+      - name: QUESTION_ID
+        synonyms:
+          - question number
+          - question id
+          - id
+        description: Unique identifier for each question
+        expr: QUESTION_ID
+        data_type: NUMBER
+        unique: true
+      - name: CHAPTER_NUMBER
+        synonyms:
+          - chapter
+          - chapter number
+        description: Chapter number (1-32) that the question covers
+        expr: CHAPTER_NUMBER
+        data_type: NUMBER
+        unique: false
+      - name: PAGE_NUMBER
+        synonyms:
+          - page
+          - page number
+        description: Page number in textbook where question originates
+        expr: PAGE_NUMBER
+        data_type: NUMBER
+        unique: false
+      - name: QUESTION_NUMBER
+        synonyms:
+          - question num
+          - question order
+        description: Sequential question number within the chapter/page
+        expr: QUESTION_NUMBER
+        data_type: NUMBER
+        unique: false
+      - name: DIFFICULTY_LEVEL
+        synonyms:
+          - difficulty
+          - level
+          - hard easy
+        description: Difficulty level of the question
+        expr: DIFFICULTY_LEVEL
+        data_type: TEXT
+        is_enum: true
+      - name: QUESTION_TEXT
+        synonyms:
+          - question
+          - text
+          - content
+        description: The actual question text
+        expr: QUESTION_TEXT
+        data_type: TEXT
+        unique: false
+      - name: TOPIC
+        synonyms:
+          - topic
+          - subject
+          - theme
+        description: Specific topic or theme covered by this question
+        expr: TOPIC
+        data_type: TEXT
+        unique: false
+      - name: OPTION_A
+        synonyms:
+          - option a
+          - choice a
+          - answer a
+        description: Multiple choice option A text
+        expr: OPTION_A
+        data_type: TEXT
+        unique: false
+      - name: OPTION_B
+        synonyms:
+          - option b
+          - choice b
+          - answer b
+        description: Multiple choice option B text
+        expr: OPTION_B
+        data_type: TEXT
+        unique: false
+      - name: OPTION_C
+        synonyms:
+          - option c
+          - choice c
+          - answer c
+        description: Multiple choice option C text
+        expr: OPTION_C
+        data_type: TEXT
+        unique: false
+      - name: OPTION_D
+        synonyms:
+          - option d
+          - choice d
+          - answer d
+        description: Multiple choice option D text
+        expr: OPTION_D
+        data_type: TEXT
+        unique: false
+      - name: CORRECT_ANSWER
+        synonyms:
+          - answer
+          - correct answer
+          - solution
+        description: The correct answer for this question
+        expr: CORRECT_ANSWER
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_TIMESTAMP
+        synonyms:
+          - created
+          - creation date
+          - date added
+        description: Timestamp when the question was created or added
+        expr: CREATED_TIMESTAMP
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    metrics:
+      - name: total_questions
+        synonyms:
+          - question count
+          - number of questions
+        description: Total number of questions in the question bank
+        expr: COUNT(*)
+  - name: STUDENTS
+    description: Student demographic and enrollment information including grade level, age, gender, and class assignments.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: STUDENTS
+    primary_key:
+      columns:
+        - STUDENT_ID
+    dimensions:
+      - name: STUDENT_ID
+        synonyms:
+          - student
+          - student number
+        description: Unique identifier for each student
+        expr: STUDENT_ID
+        data_type: NUMBER
+        unique: true
+      - name: STUDENT_NAME
+        synonyms:
+          - name
+          - student name
+        description: Full name of the student
+        expr: STUDENT_NAME
+        data_type: TEXT
+        unique: false
+      - name: CLASS_ID
+        synonyms:
+          - class
+          - class number
+        description: Identifier for the class the student is enrolled in
+        expr: CLASS_ID
+        data_type: NUMBER
+        unique: false
+      - name: GRADE_LEVEL
+        synonyms:
+          - grade
+          - school grade
+          - year
+        description: Student's current grade level (9-12)
+        expr: GRADE_LEVEL
+        data_type: NUMBER
+        unique: false
+      - name: GENDER
+        synonyms:
+          - student gender
+          - sex
+        description: Student's gender
+        expr: GENDER
+        data_type: TEXT
+        is_enum: true
+    time_dimensions:
+      - name: ENROLLMENT_DATE
+        synonyms:
+          - enrollment
+          - start date
+        description: Date when student enrolled
+        expr: ENROLLMENT_DATE
+        data_type: DATE
+        unique: false
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when student record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: AGE
+        synonyms:
+          - student age
+        description: Student's age in years
+        expr: AGE
+        data_type: NUMBER
+  - name: HIGH_SCHOOLS
+    description: High school information including school names, types, enrollment numbers, and district associations.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: HIGH_SCHOOLS
+    primary_key:
+      columns:
+        - SCHOOL_ID
+    dimensions:
+      - name: SCHOOL_ID
+        synonyms:
+          - school id
+          - school number
+          - school identifier
+        description: Unique identifier for each school
+        expr: SCHOOL_ID
+        data_type: NUMBER
+        unique: true
+      - name: SCHOOL_NAME
+        synonyms:
+          - school name
+          - high school
+          - school
+        description: Name of the high school
+        expr: SCHOOL_NAME
+        data_type: TEXT
+        unique: false
+      - name: DISTRICT_ID
+        synonyms:
+          - district
+          - district number
+        description: School district identifier
+        expr: DISTRICT_ID
+        data_type: NUMBER
+        unique: false
+      - name: SCHOOL_TYPE
+        synonyms:
+          - type
+          - school type
+        description: Type of school (Regular, Magnet, Specialized, etc.)
+        expr: SCHOOL_TYPE
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when school record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: ENROLLMENT
+        synonyms:
+          - school size
+          - student count
+          - school enrollment
+        description: Total enrollment at the school
+        expr: ENROLLMENT
+        data_type: NUMBER
+  - name: SCHOOL_DISTRICTS
+    description: School district information including district names, city locations, and total student/school counts.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: SCHOOL_DISTRICTS
+    primary_key:
+      columns:
+        - DISTRICT_ID
+    dimensions:
+      - name: DISTRICT_ID
+        synonyms:
+          - district id
+          - district number
+          - district identifier
+        description: Unique identifier for each district
+        expr: DISTRICT_ID
+        data_type: NUMBER
+        unique: true
+      - name: DISTRICT_NAME
+        synonyms:
+          - district name
+          - school district
+          - district
+        description: School district name
+        expr: DISTRICT_NAME
+        data_type: TEXT
+        unique: false
+      - name: CITY_ID
+        synonyms:
+          - city
+          - city number
+        description: City identifier where district is located
+        expr: CITY_ID
+        data_type: NUMBER
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when district record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: TOTAL_STUDENTS
+        synonyms:
+          - district size
+          - district enrollment
+        description: Total students in the school district
+        expr: TOTAL_STUDENTS
+        data_type: NUMBER
+      - name: TOTAL_SCHOOLS
+        synonyms:
+          - school count
+          - number of schools
+        description: Total number of schools in the district
+        expr: TOTAL_SCHOOLS
+        data_type: NUMBER
+  - name: CITIES
+    description: City demographic information including city names, states, and population data.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: CITIES
+    primary_key:
+      columns:
+        - CITY_ID
+    dimensions:
+      - name: CITY_ID
+        synonyms:
+          - city id
+          - city number
+          - city identifier
+        description: Unique identifier for each city
+        expr: CITY_ID
+        data_type: NUMBER
+        unique: true
+      - name: CITY_NAME
+        synonyms:
+          - city name
+          - city
+          - location
+        description: City name
+        expr: CITY_NAME
+        data_type: TEXT
+        unique: false
+      - name: STATE
+        synonyms:
+          - state name
+          - us state
+        description: US state where the city is located
+        expr: STATE
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when city record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: POPULATION
+        synonyms:
+          - population
+          - city size
+        description: Population of the city
+        expr: POPULATION
+        data_type: NUMBER
+  - name: TEACHERS
+    description: Teacher information including names, subjects, experience levels, and education backgrounds.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: TEACHERS
+    primary_key:
+      columns:
+        - TEACHER_ID
+    dimensions:
+      - name: TEACHER_ID
+        synonyms:
+          - teacher id
+          - teacher number
+          - teacher identifier
+        description: Unique identifier for each teacher
+        expr: TEACHER_ID
+        data_type: NUMBER
+        unique: true
+      - name: TEACHER_NAME
+        synonyms:
+          - teacher name
+          - teacher
+          - instructor
+        description: Name of the teacher
+        expr: TEACHER_NAME
+        data_type: TEXT
+        unique: false
+      - name: SCHOOL_ID
+        synonyms:
+          - school
+          - school number
+        description: School where teacher works
+        expr: SCHOOL_ID
+        data_type: NUMBER
+        unique: false
+      - name: SUBJECT
+        synonyms:
+          - subject
+          - teaching subject
+        description: Subject that the teacher teaches
+        expr: SUBJECT
+        data_type: TEXT
+        unique: false
+      - name: EDUCATION_LEVEL
+        synonyms:
+          - teacher education
+          - degree level
+        description: Teacher's education level (Bachelors, Masters, Doctorate)
+        expr: EDUCATION_LEVEL
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when teacher record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: YEARS_EXPERIENCE
+        synonyms:
+          - experience
+          - teaching experience
+        description: Teacher's years of teaching experience
+        expr: YEARS_EXPERIENCE
+        data_type: NUMBER
+  - name: CLASSES
+    description: Class information including class names, teachers, schools, periods, and room assignments.
+    base_table:
+      database: WORLD_HISTORY
+      schema: SCHOOLS
+      table: CLASSES
+    primary_key:
+      columns:
+        - CLASS_ID
+    dimensions:
+      - name: CLASS_ID
+        synonyms:
+          - class id
+          - class number
+          - class identifier
+        description: Unique identifier for each class
+        expr: CLASS_ID
+        data_type: NUMBER
+        unique: true
+      - name: CLASS_NAME
+        synonyms:
+          - class name
+          - class
+        description: Name of the class
+        expr: CLASS_NAME
+        data_type: TEXT
+        unique: false
+      - name: TEACHER_ID
+        synonyms:
+          - teacher
+          - teacher number
+        description: Teacher assigned to this class
+        expr: TEACHER_ID
+        data_type: NUMBER
+        unique: false
+      - name: SCHOOL_ID
+        synonyms:
+          - school
+          - school number
+        description: School where class is held
+        expr: SCHOOL_ID
+        data_type: NUMBER
+        unique: false
+      - name: PERIOD
+        synonyms:
+          - period
+          - class period
+          - period number
+        description: Class period number
+        expr: PERIOD
+        data_type: NUMBER
+        unique: false
+      - name: ROOM_NUMBER
+        synonyms:
+          - room
+          - classroom
+        description: Room number where class is held
+        expr: ROOM_NUMBER
+        data_type: TEXT
+        unique: false
+    time_dimensions:
+      - name: CREATED_AT
+        synonyms:
+          - created
+          - record created
+        description: Date when class record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        unique: false
+    facts:
+      - name: MAX_CAPACITY
+        synonyms:
+          - capacity
+          - max students
+        description: Maximum number of students in the class
+        expr: MAX_CAPACITY
+        data_type: NUMBER
+relationships:
+  - name: test_results_to_students
+    left_table: STUDENT_CHAPTER_TEST_RESULTS
+    right_table: STUDENTS
+    relationship_columns:
+      - left_column: STUDENT_ID
+        right_column: STUDENT_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: question_responses_to_students
+    left_table: STUDENT_QUESTION_RESPONSES
+    right_table: STUDENTS
+    relationship_columns:
+      - left_column: STUDENT_ID
+        right_column: STUDENT_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: question_responses_to_questions
+    left_table: STUDENT_QUESTION_RESPONSES
+    right_table: WORLD_HISTORY_TEST_QUESTIONS
+    relationship_columns:
+      - left_column: QUESTION_ID
+        right_column: QUESTION_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: students_to_classes
+    left_table: STUDENTS
+    right_table: CLASSES
+    relationship_columns:
+      - left_column: CLASS_ID
+        right_column: CLASS_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: classes_to_teachers
+    left_table: CLASSES
+    right_table: TEACHERS
+    relationship_columns:
+      - left_column: TEACHER_ID
+        right_column: TEACHER_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: classes_to_schools
+    left_table: CLASSES
+    right_table: HIGH_SCHOOLS
+    relationship_columns:
+      - left_column: SCHOOL_ID
+        right_column: SCHOOL_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: teachers_to_schools
+    left_table: TEACHERS
+    right_table: HIGH_SCHOOLS
+    relationship_columns:
+      - left_column: SCHOOL_ID
+        right_column: SCHOOL_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: schools_to_districts
+    left_table: HIGH_SCHOOLS
+    right_table: SCHOOL_DISTRICTS
+    relationship_columns:
+      - left_column: DISTRICT_ID
+        right_column: DISTRICT_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+  - name: districts_to_cities
+    left_table: SCHOOL_DISTRICTS
+    right_table: CITIES
+    relationship_columns:
+      - left_column: CITY_ID
+        right_column: CITY_ID
+    join_type: left_outer
+    relationship_type: many_to_one
+verified_queries:
+  - name: grade_distribution_analysis
+    question: Show me the distribution of letter grades across all chapter tests
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    use_as_onboarding_question: true
+    sql: |
+      SELECT 
+        letter_grade, 
+        COUNT(*) AS count, 
+        ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage 
+      FROM __student_chapter_test_results 
+      GROUP BY letter_grade 
+      ORDER BY 
+        CASE letter_grade 
+          WHEN 'A+' THEN 1 WHEN 'A' THEN 2 WHEN 'A-' THEN 3 
+          WHEN 'B+' THEN 4 WHEN 'B' THEN 5 WHEN 'B-' THEN 6 
+          WHEN 'C+' THEN 7 WHEN 'C' THEN 8 WHEN 'C-' THEN 9 
+          WHEN 'D+' THEN 10 WHEN 'D' THEN 11 WHEN 'D-' THEN 12 
+          ELSE 13 
+        END
+  - name: hardest_questions_analysis
+    question: What are the hardest questions based on lowest success rates?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    use_as_onboarding_question: true
+    sql: |
+      SELECT 
+        q.question_id, 
+        q.chapter_number, 
+        q.difficulty_level, 
+        q.topic, 
+        LEFT(q.question_text, 100) AS question_preview, 
+        COUNT(r.response_id) AS total_attempts, 
+        SUM(CASE WHEN r.is_correct THEN 1 ELSE 0 END) AS correct_attempts, 
+        ROUND(SUM(CASE WHEN r.is_correct THEN 1 ELSE 0 END) * 100.0 / COUNT(r.response_id), 2) AS success_rate 
+      FROM __world_history_test_questions AS q 
+      JOIN __student_question_responses AS r ON q.question_id = r.question_id 
+      GROUP BY q.question_id, q.chapter_number, q.difficulty_level, q.topic, q.question_text 
+      HAVING COUNT(r.response_id) >= 50 
+      ORDER BY success_rate ASC, total_attempts DESC 
+      LIMIT 20
+  - name: student_performance_by_school
+    question: How do students perform across different schools and school types?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    sql: |
+      SELECT 
+        hs.school_name, 
+        hs.school_type, 
+        sd.district_name, 
+        c.city_name, 
+        c.state, 
+        COUNT(DISTINCT s.student_id) AS total_students, 
+        COUNT(*) AS total_tests, 
+        ROUND(AVG(sctr.final_score_percent), 2) AS avg_score, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('A+', 'A', 'A-') THEN 1 END) AS a_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('B+', 'B', 'B-') THEN 1 END) AS b_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('C+', 'C', 'C-') THEN 1 END) AS c_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) AS failing_grades, 
+        ROUND(COUNT(CASE WHEN NOT sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) * 100.0 / COUNT(*), 2) AS passing_rate 
+      FROM __student_chapter_test_results AS sctr 
+      JOIN __students AS s ON sctr.student_id = s.student_id 
+      JOIN __classes AS cl ON s.class_id = cl.class_id 
+      JOIN __high_schools AS hs ON cl.school_id = hs.school_id 
+      JOIN __school_districts AS sd ON hs.district_id = sd.district_id 
+      JOIN __cities AS c ON sd.city_id = c.city_id 
+      GROUP BY hs.school_name, hs.school_type, sd.district_name, c.city_name, c.state 
+      ORDER BY avg_score DESC
+  - name: top_performing_students
+    question: Who are the top performing students with comprehensive grade breakdowns?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    sql: |
+      SELECT 
+        s.student_name, 
+        s.grade_level, 
+        s.age, 
+        s.gender, 
+        hs.school_name, 
+        c.city_name, 
+        COUNT(*) AS tests_taken, 
+        ROUND(AVG(sctr.final_score_percent), 2) AS avg_score, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('A+', 'A', 'A-') THEN 1 END) AS a_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('B+', 'B', 'B-') THEN 1 END) AS b_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('C+', 'C', 'C-') THEN 1 END) AS c_level_grades, 
+        ROUND(COUNT(CASE WHEN NOT sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) * 100.0 / COUNT(*), 2) AS passing_rate 
+      FROM __student_chapter_test_results AS sctr 
+      JOIN __students AS s ON sctr.student_id = s.student_id 
+      JOIN __classes AS cl ON s.class_id = cl.class_id 
+      JOIN __high_schools AS hs ON cl.school_id = hs.school_id 
+      JOIN __school_districts AS sd ON hs.district_id = sd.district_id 
+      JOIN __cities AS c ON sd.city_id = c.city_id 
+      GROUP BY s.student_name, s.grade_level, s.age, s.gender, hs.school_name, c.city_name 
+      HAVING COUNT(*) >= 5 
+      ORDER BY avg_score DESC 
+      LIMIT 25
+  - name: grade_level_performance_analysis
+    question: How do different grade levels (9-12) perform on World History tests?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    sql: |
+      SELECT 
+        s.grade_level, 
+        COUNT(DISTINCT s.student_id) AS total_students, 
+        COUNT(*) AS total_tests, 
+        ROUND(AVG(sctr.final_score_percent), 2) AS avg_score, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('A+', 'A', 'A-') THEN 1 END) AS a_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('B+', 'B', 'B-') THEN 1 END) AS b_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('C+', 'C', 'C-') THEN 1 END) AS c_level_grades, 
+        COUNT(CASE WHEN sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) AS failing_grades, 
+        ROUND(COUNT(CASE WHEN NOT sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) * 100.0 / COUNT(*), 2) AS passing_rate 
+      FROM __student_chapter_test_results AS sctr 
+      JOIN __students AS s ON sctr.student_id = s.student_id 
+      GROUP BY s.grade_level 
+      ORDER BY s.grade_level
+  - name: teacher_performance_analysis
+    question: How do different teachers perform in terms of student outcomes?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    sql: |
+      SELECT 
+        t.teacher_name, 
+        t.years_experience, 
+        t.education_level, 
+        hs.school_name, 
+        COUNT(DISTINCT s.student_id) AS total_students, 
+        COUNT(*) AS total_tests, 
+        ROUND(AVG(sctr.final_score_percent), 2) AS avg_student_score, 
+        ROUND(COUNT(CASE WHEN NOT sctr.letter_grade IN ('D+', 'D', 'D-', 'F') THEN 1 END) * 100.0 / COUNT(*), 2) AS passing_rate 
+      FROM __student_chapter_test_results AS sctr 
+      JOIN __students AS s ON sctr.student_id = s.student_id 
+      JOIN __classes AS cl ON s.class_id = cl.class_id 
+      JOIN __teachers AS t ON cl.teacher_id = t.teacher_id 
+      JOIN __high_schools AS hs ON cl.school_id = hs.school_id 
+      GROUP BY t.teacher_name, t.years_experience, t.education_level, hs.school_name 
+      HAVING COUNT(*) >= 25 
+      ORDER BY avg_student_score DESC
+  - name: question_difficulty_by_chapter
+    question: How are question difficulties distributed across World History chapters?
+    verified_at: 1704067200
+    verified_by: Education Analyst
+    sql: |
+      SELECT 
+        q.chapter_number, 
+        q.difficulty_level, 
+        COUNT(q.question_id) AS question_count, 
+        ROUND(AVG(sqr.success_rate), 2) AS avg_success_rate, 
+        ROUND(AVG(sqr.avg_response_time), 1) AS avg_response_time_seconds 
+      FROM __world_history_test_questions AS q 
+      LEFT JOIN (
+        SELECT 
+          question_id, 
+          COUNT(*) AS total_responses, 
+          ROUND(SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate, 
+          ROUND(AVG(response_time_seconds), 1) AS avg_response_time 
+        FROM __student_question_responses 
+        GROUP BY question_id
+      ) AS sqr ON q.question_id = sqr.question_id 
+      GROUP BY q.chapter_number, q.difficulty_level 
+      ORDER BY q.chapter_number, 
+        CASE q.difficulty_level 
+          WHEN 'Easy' THEN 1 
+          WHEN 'Medium' THEN 2 
+          WHEN 'Hard' THEN 3 
+        END
+custom_instructions: |
+  Round any decimals to 2 decimal places. When analyzing student performance, always consider both numerical scores and letter grade distributions for comprehensive insights. For demographic analysis, ensure student privacy by not revealing individual student information beyond aggregate statistics. When comparing performance across schools or districts, consider the context of school types and local demographics.
+
+  Focus on actionable insights for educators:
+  - Identify hardest questions to help teachers focus review time
+  - Compare performance across demographic groups to identify achievement gaps
+  - Analyze question difficulty patterns to improve test design
+  - Track student progress over multiple chapters
+  - Provide school and district-level performance comparisons for administrative insights
