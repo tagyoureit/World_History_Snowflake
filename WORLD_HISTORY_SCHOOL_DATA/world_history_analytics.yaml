@@ -1,11 +1,11 @@
-name: world_history_analytics
+name: world_history_qa_analytics
 description: Comprehensive semantic model for World History QA education analytics covering student performance, test results, question difficulty analysis, and school demographics. Enables analysis of academic performance patterns, hardest questions, and institutional comparisons.
 tables:
   - name: STUDENT_CHAPTER_TEST_RESULTS
     description: Student performance data for World History chapter tests including scores, grades, and completion metrics.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: STUDENT_CHAPTER_TEST_RESULTS
     primary_key:
       columns:
@@ -106,11 +106,15 @@ tables:
           - a students
         description: Filter for A-level grades (A+, A, A-)
         expr: LETTER_GRADE IN ('A+', 'A', 'A-')
+    synonyms:
+      - exam
+      - quiz
+      - midterm
   - name: STUDENT_QUESTION_RESPONSES
     description: Individual student responses to specific questions, tracking which questions each student answered correctly with response times and difficulty analysis.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: STUDENT_QUESTION_RESPONSES
     primary_key:
       columns:
@@ -226,11 +230,13 @@ tables:
           - mean response time
         description: Average time spent per response in seconds
         expr: ROUND(AVG(RESPONSE_TIME_SECONDS), 1)
+    synonyms:
+      - ansnwers
   - name: WORLD_HISTORY_TEST_QUESTIONS
     description: Comprehensive question bank for World History assessments including question text, multiple choice options, correct answers, and difficulty levels.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: WORLD_HISTORY_TEST_QUESTIONS
     primary_key:
       columns:
@@ -361,8 +367,8 @@ tables:
   - name: STUDENTS
     description: Student demographic and enrollment information including grade level, age, gender, and class assignments.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: STUDENTS
     primary_key:
       columns:
@@ -433,11 +439,14 @@ tables:
         description: Student's age in years
         expr: AGE
         data_type: NUMBER
+    synonyms:
+      - kids
+      - children
   - name: HIGH_SCHOOLS
     description: High school information including school names, types, enrollment numbers, and district associations.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: HIGH_SCHOOLS
     primary_key:
       columns:
@@ -498,8 +507,8 @@ tables:
   - name: SCHOOL_DISTRICTS
     description: School district information including district names, city locations, and total student/school counts.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: SCHOOL_DISTRICTS
     primary_key:
       columns:
@@ -558,8 +567,8 @@ tables:
   - name: CITIES
     description: City demographic information including city names, states, and population data.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: CITIES
     primary_key:
       columns:
@@ -611,8 +620,8 @@ tables:
   - name: TEACHERS
     description: Teacher information including names, subjects, experience levels, and education backgrounds.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: TEACHERS
     primary_key:
       columns:
@@ -677,11 +686,13 @@ tables:
         description: Teacher's years of teaching experience
         expr: YEARS_EXPERIENCE
         data_type: NUMBER
+    synonyms:
+      - professor
   - name: CLASSES
     description: Class information including class names, teachers, schools, periods, and room assignments.
     base_table:
-      database: WORLD_HISTORY
-      schema: SCHOOLS
+      database: WORLD_HISTORY_QA
+      schema: SCHOOLS2
       table: CLASSES
     primary_key:
       columns:
